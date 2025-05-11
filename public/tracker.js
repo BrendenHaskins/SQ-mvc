@@ -1,51 +1,69 @@
-document.addEventListener("DOMContentLoaded", function() {
-    const allStoredVessels = localStorage.getItem("SQTrackerVessels")
-    if(allStoredVessels)
-    {
-        for(let vessel in JSON.parse(allStoredVessels))
-        {
-            document.getElementById("cards").appendChild()
+const KEY = "SQTrackerVessels"
+
+document.addEventListener("DOMContentLoaded", function () {
+    const allStoredVessels = localStorage.getItem(KEY);
+    if (allStoredVessels) {
+    
+        document.getElementById("no-ships").remove();
+        const vessels = JSON.parse(allStoredVessels);
+        for (let vessel of vessels) {
+            addVesselToPage(vessel);
         }
     }
-});
+  });
 
-function addVesselToPage()
-{
+function addVesselToPage(obj) {
     const card = document.createElement("div");
-    card.className = "card";
+    card.className = "card m-2";
     card.style.width = "18rem";
-
-    // Create the card body
+  
     const cardBody = document.createElement("div");
     cardBody.className = "card-body";
-
-    // Add title
+  
     const cardTitle = document.createElement("h5");
     cardTitle.className = "card-title";
-    cardTitle.textContent = "Card Title";
-
-    // Add text
+    cardTitle.textContent = obj.name || "Unnamed Vessel";
+  
     const cardText = document.createElement("p");
     cardText.className = "card-text";
-    cardText.textContent = "This is some text inside the card.";
-
-    // Optional: Add a button
-    const cardButton = document.createElement("a");
-    cardButton.className = "btn btn-primary";
-    cardButton.href = "#";
-    cardButton.textContent = "Go somewhere";
-
-    // Append elements together
+    cardText.innerHTML = `
+      <strong>Movement:</strong> ${obj.movement} <br>
+      <strong>Armor:</strong> ${obj.armor} <br>
+      <strong>Engines:</strong> ${obj.engines} <br>
+      <strong>Sensor Range:</strong> ${obj.sensor}
+    `;
+  
+    const weaponList = document.createElement("ul");
+    weaponList.className = "list-group list-group-flush";
+    (obj.weapons || []).forEach(weapon => {
+      const li = document.createElement("li");
+      li.className = "list-group-item";
+      li.textContent = weapon;
+      weaponList.appendChild(li);
+    });
+  
     cardBody.appendChild(cardTitle);
     cardBody.appendChild(cardText);
-    cardBody.appendChild(cardButton);
     card.appendChild(cardBody);
-
-    // Append card to the container
+    if (weaponList.childNodes.length > 0) {
+      card.appendChild(weaponList);
+    }
+  
     document.getElementById("card-container").appendChild(card);
-}
+  }
 
-function addVesselToLocalStorage() {
+function addVesselToLocalStorage(obj) {
+    try{
+        const allVessels = localStorage.getItem(KEY) ?? "[]";
+        const parsed = JSON.parse(allVessels);
+        parsed.push(obj)
+        const newVessels = JSON.stringify(parsed);
+        localStorage.setItem(KEY, newVessels);
+        return true;
+        
+    } catch (err) {
+        return false;
+    }
 
 }
 
@@ -77,8 +95,7 @@ function submitVesselForm() {
       sensor: parseInt(document.getElementById("sensor").value),
       weapons: []
     };
-  
-    // Dynamically collect all weapon inputs: weapon0, weapon1, weapon2...
+
     let weaponCount = 0;
     let weaponInput = document.getElementById(`weapon${weaponCount}`);
   
@@ -90,10 +107,27 @@ function submitVesselForm() {
       weaponCount++;
       weaponInput = document.getElementById(`weapon${weaponCount}`);
     }
-  
-    // Example: Log the collected form data
-    console.log("Vessel submitted:", formData);
-  
-    // You can now do something with formData (e.g., send it to a backend or store in localStorage)
-  }
+    
+    if(addVesselToLocalStorage(formData))
+    {
+        window.location.reload();
+    } else {
+        showBootstrapAlert("Could not add vessel.", "danger")
+    }
+}
+
+function showBootstrapAlert(message, type = "primary") {
+    const alertHTML = `
+      <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    `;
+    document.getElementById("alert-container").insertAdjacentHTML("beforeend", alertHTML);
+}
+
+function clearAllShips() {
+    localStorage.removeItem(KEY);
+    window.location.reload();
+}
 
